@@ -8,21 +8,33 @@ $(function() {
 	  , $container    = $('.inner-content')
 	  , $line         = $('hr')
 	  , $menuItems    = $('.bottom-titles')
+	  , $modal        = $('.modal')
 
 	  // styling classes 
-	  , INVISIBLE     = "invisible" // for element with display none
-	  , LINE_ANIM     = 'straigh-line-animated' // for line animation
-	  , ANIM_PLUGIN   = "animated fadeIn"
-	  , ACTIVE_BRAND  = 'current-active'
+	  , INVISIBLE      = "invisible" // for element with display none
+	  , ROW_ANIMATION  = 'straigh-line-animated' // for line animation
+	  , FADE_IN        = "animated fadeIn"
+	  , FADE_OUT	   = "animated fadeOut"
+	  , FADE_OUT_RIGHT = "animated fadeOutRight"
+	  , FADE_IN_LEFT   = "animated fadeInLeft"
+	  , ACTIVE_BRAND   = 'current-active'
 
-	  // map to callbacks
-	  , mapToCallbacks = {
-	  		"form": showFormSection,
-	  		"position": showPositionSection,
-	  		"name": showNameSection,
-	  		"project": showProjectSection
-	  	}   
-	  ;
+      , sectionHandler = {
+	  		section: null,
+
+	  		showCurrentSection: function(section) {
+	  			return function() {
+	  				if(this ===	 window) return;
+		  			this.section.removeClass(INVISIBLE)
+						.addClass(FADE_IN);	
+		  		};
+			},
+
+		  	cleanPreviousSection: function() {
+		  		$('.inner-content').find('#aboutme, #menu, #form').addClass(INVISIBLE);
+		  	}
+	  }
+    ;
 
     // configure listeners for the box style
     subscribeAll();
@@ -31,24 +43,31 @@ $(function() {
     animationInit();
 
     function subscribeAll() {
-    	$brands.on('click', displayItems);
-
+    	
     	/**
     	* perform animation once the user clicks
     	* in one of the brands available 
     	**/
 
+    	$brands.on('click', displayItems);
+
     	function displayItems(e) {
-    		var $target = $(e.target);
+    		var $target = $(e.target)
+    		  , section = $("#" + $target.data().value)
+    		  ;
 
     		e.preventDefault();
     		e.stopPropagation();
+
+    		sectionHandler.cleanPreviousSection();
+    		sectionHandler.section = section; 
 
     		setBrandToActive(e.target);
 
     		// calls specific function based on the
     		// data attribute
-    		rowAnimation(mapToCallbacks[$target.data().value]);
+
+    		rowAnimation(sectionHandler.showCurrentSection());
     	}
 
     	function setBrandToActive(element) {
@@ -58,22 +77,38 @@ $(function() {
 
     	function rowAnimation(fn) {
     		if($line.hasClass(INVISIBLE)) {
-	    		$line.removeClass(INVISIBLE)
-	    			.addClass(LINE_ANIM);
+	    		$line.removeClass(INVISIBLE);
 
-				fn && fn();	
+				setTimeout(function() {
+                    $line.addClass(ROW_ANIMATION);
+                    fn && fn.call(sectionHandler, null);
+                }, 0);
 
     		} else {
-    			$line.removeClass(LINE_ANIM);
+    			$line.removeClass(ROW_ANIMATION);
 
     			setTimeout(function() {
-    				$line.addClass(LINE_ANIM);
-    				fn && fn();	
+    				$line.addClass(ROW_ANIMATION);
+    				fn && fn.call(sectionHandler, null);
     			}, 500);
     		}
-
-    		
     	}
+
+        $(".form").on('submit', function(e) {
+            e.preventDefault();
+            var options = {}, mail;
+           
+            $(this).children().each(function() {
+                if(! $(this).is('button')) {
+                    options[$(this).attr('name')] = $(this).val(); 
+                }
+            });
+
+            console.log(options);
+        
+            mail = new Mail(options);
+            mail.sendMessage();
+        });
     };
 
 	/**
@@ -82,35 +117,15 @@ $(function() {
 	**/
 
 	function animationInit() {
-		$title.addClass(ANIM_PLUGIN)
+		$title.addClass(FADE_IN)
 		
 		$descriptions
 			.removeClass(INVISIBLE)
-				.addClass(ANIM_PLUGIN);
+				.addClass(FADE_IN);
 		
 		$brands
 			.removeClass(INVISIBLE)
-				.addClass(ANIM_PLUGIN);
+				.addClass(FADE_IN);
 	};
-
-	// functions for loading specifics
-	// section contents
-	function showFormSection() {
-		$("#form")
-			.removeClass(INVISIBLE)
-				.addClass(ANIM_PLUGIN);
-    };
-
-    function showPositionSection() {
-
-    };
-
-    function showNameSection() {
-
-    };
-
-    function showProjectSection() {
-
-    };
 
 });
