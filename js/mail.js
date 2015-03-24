@@ -41,7 +41,7 @@
 
 				setTimeout(function() {
 					$(".spinner").addClass('invisible');
-					$("#form").addClass("invisible");
+					$("#form").removeClass().addClass("invisible");
 					$("#message")
 						.text("Done! Thanks for sending")
 						.removeClass('invisible')

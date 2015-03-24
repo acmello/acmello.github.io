@@ -31,6 +31,7 @@ $(function() {
 			},
 
 		  	cleanPreviousSection: function() {
+                $("#message").text('').removeClass().addClass(INVISIBLE);
 		  		$('.inner-content').find('#aboutme, #menu, #form').addClass(INVISIBLE);
 		  	}
 	  }
