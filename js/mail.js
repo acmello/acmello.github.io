@@ -34,6 +34,7 @@
 				/*if(response.reject_reason === null
 					&& response.status === "sent") {*/
 
+				console.log(response);
 				$('#name').val("");
 				$('#description').val("");
 				$(".spinner").removeClass('invisible');
