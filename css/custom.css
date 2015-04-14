@@ -333,6 +333,7 @@ a:active {
 
 .list-projects p {
 	text-align: justify;
+	font-size: .75em;
 }
 
 aside[id="slidr-div-control"] .slidr-control.right {
