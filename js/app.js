@@ -1,116 +1,253 @@
 $(function() {
-	
-	// once the DOM is ready, grab the necessary
-	// elements to work with
-	var $descriptions = $(".description")
-	  , $brands       = $('.brand')
-	  , $title        = $('.title')
-	  , $container    = $('.inner-content')
-	  , $line         = $('hr')
-	  , $menuItems    = $('.bottom-titles')
-	  , $modal        = $('.modal')
 
-	  // styling classes 
+    Pace.options = {
+        ajax: false, // disabled
+        document: false, // disabled
+        eventLag: false, // disabled
+        restartOnRequestAfter: false
+    }
+
+	// the only available element when DOM initializes
+    // will be the container
+	var $container    = $('.inner-content')
+	 
+	  // styling animation classes 
 	  , INVISIBLE      = "invisible" // for element with display none
-	  , ROW_ANIMATION  = 'straigh-line-animated' // for line animation
+	  , ROW_ANIMATION  = "straigh-line-animated" // for line animation
 	  , FADE_IN        = "animated fadeIn"
 	  , FADE_OUT	   = "animated fadeOut"
 	  , FADE_OUT_RIGHT = "animated fadeOutRight"
 	  , FADE_IN_LEFT   = "animated fadeInLeft"
-	  , ACTIVE_BRAND   = 'current-active'
+	  , ACTIVE_BRAND   = "current-active"
+      , SHAKE          = "animated shake"
 
-      , sectionHandler = {
-	  		section: null,
+      , delay = function(fn) {
+            setTimeout(fn, 500);
+        }
+
+      , section = {
+	  		currentSection: null,
+
+            subscribeEvents: function() {
+                this.currentSection.off().on('click', 'a', function(e) {
+                    var type = $(this).data('type');
+                    loader[type](e);
+                });
+            },
 
 	  		showCurrentSection: function(section) {
 	  			return function() {
 	  				if(this ===	 window) return;
-		  			this.section.removeClass(INVISIBLE)
+		  			this.currentSection.removeClass(INVISIBLE)
 						.addClass(FADE_IN);	
+
+                    this.subscribeEvents();
 		  		};
 			},
 
-		  	cleanPreviousSection: function() {
+		  	clearPreviousSection: function() {
                 $("#message").text('').removeClass().addClass(INVISIBLE);
 		  		$('.inner-content').find('#aboutme, #menu, #form').addClass(INVISIBLE);
 		  	}
-	  }
-    ;
+	    }
+      , loader = {
+            music: function() {
+                var callback = function() {
+                     ajax('views/music.html', function() {
+                        slidr.create('slidr-div', {
+                          breadcrumbs: true,
+                          controls: 'border',
+                          direction: 'horizontal',
+                          fade: true,
+                          keyboard: true,
+                          overflow: false,
+                          theme: '#222',
+                          timing: { 'linear': '0.5s ease-in' },
+                          touch: true,
+                          transition: 'linear'
+                        }).start();
 
-    // configure listeners for the box style
-    subscribeAll();
+                        $('.closeBtn').on("click", function(e) {
+                             $container.addClass('animated zoomOut');
+                             delay(loader['index']);
+                        });
+                    })
+                 };
 
-	// trigger the initial animation  
-    animationInit();
+                $container.addClass('animated zoomOut');
+                delay(callback.bind(this));
+            },
+            code: function() {
+                var callback = function() {
+                    ajax('views/code.html', function() {
+                        $.ajax({
+                            url: 'https://api.github.com/search/repositories?q=user:acmello&sort:updated',
+                            cache: false
+                            }).done(function(data) {
+                                var items = data.items
+                                  , i = null
+                                  , words = {}
+                                  , html = ''
+                                  ;
 
-    function subscribeAll() {
-    	
-    	/**
-    	* perform animation once the user clicks
-    	* in one of the brands available 
-    	**/
+                                for(i in items) {
+                                    var item = items[i];
+                                    words = {
+                                        fullname: item.full_name,    
+                                        url: item.html_url,
+                                        description: item.description
+                                    };
+                                    
+                                    html += template(words);
+                                }
 
-    	$brands.on('click', displayItems);
+                            if(html) $('.list-projects').html(html);
+                        });
 
-    	function displayItems(e) {
-    		var $target = $(e.target)
-    		  , section = $("#" + $target.data().value)
-    		  ;
+                        $('.closeBtn').on("click", function(e) {
+                            $container.addClass('animated zoomOut');
+                            delay(loader['index']);
+                        });
+                    });
+                };
 
-    		e.preventDefault();
-    		e.stopPropagation();
+                $container.addClass('animated zoomOut');
+                delay(callback.bind(this));
+            },
+            people: function(e) {
+                // since theres nothing goin here still
+                // just add this animation
+                $(e.target).addClass(SHAKE);
+                setTimeout(function() {
+                    $(e.target).removeClass(SHAKE);
+                    var tooltip = new Opentip("#people", "Sorry, there's nothing here by now! :(");
+                    tooltip.show();        
+                }, 600);
+            },
 
-    		sectionHandler.cleanPreviousSection();
-    		sectionHandler.section = section; 
+            index: function() {
+                ajax('views/index.html', function() {
+                    $container.off().on('click', '.brand', function(e) {
+                        var $target = $(e.target)
+                          , sectionEl = $("#" + $target.data().value)
+                          ;
 
-    		setBrandToActive(e.target);
+                        e.preventDefault();
+                        e.stopPropagation();
 
-    		// calls specific function based on the
-    		// data attribute
+                        // clean the previous section and set the 
+                        // current section
+                        section.clearPreviousSection();
+                        section.currentSection = sectionEl;     
+                        
+                        // coloring the active brand 
+                        brand.setBrandActive(e.target);
 
-    		rowAnimation(sectionHandler.showCurrentSection());
-    	}
+                        // animating row on the top of menu
+                        row.animate(section.showCurrentSection());
+                    });
+                });
+            }
+        }  
+      , brand = {
+            // list of jquery elements available with that class
+            brands: null,
 
-    	function setBrandToActive(element) {
-    		$brands.hasClass(ACTIVE_BRAND) && $brands.removeClass(ACTIVE_BRAND);
-    		$(element).addClass(ACTIVE_BRAND);
-    	} 
+            // the current active brand 
+            currentBrand: null, 
 
-    	function rowAnimation(fn) {
-    		if($line.hasClass(INVISIBLE)) {
-	    		$line.removeClass(INVISIBLE);
+            load: function() {
+                return $('.brand'); 
+            },
 
-				setTimeout(function() {
-                    $line.addClass(ROW_ANIMATION);
-                    fn && fn.call(sectionHandler, null);
-                }, 0);
+            setBrandActive: function(brand) {
+                this.brands = this.load(); 
+                this.currentBrand = $(brand);
 
-    		} else {
-    			$line.removeClass(ROW_ANIMATION);
+                this.brands.hasClass(ACTIVE_BRAND) && this.brands.removeClass(ACTIVE_BRAND);
+                this.currentBrand.addClass(ACTIVE_BRAND);
 
-    			setTimeout(function() {
-    				$line.addClass(ROW_ANIMATION);
-    				fn && fn.call(sectionHandler, null);
-    			}, 500);
-    		}
-    	}
+                if(this.currentBrand.data('value') === "form") {
+                     $('.form').on('submit', function(e) {
+                        e.preventDefault();
+                        var options = {}, mail;
+                       
+                        $(this).children().each(function() {
+                            if(! $(this).is('button')) {
+                                options[$(this).attr('name')] = $(this).val(); 
+                            }
+                        });
 
-        $(".form").on('submit', function(e) {
-            e.preventDefault();
-            var options = {}, mail;
-           
-            $(this).children().each(function() {
-                if(! $(this).is('button')) {
-                    options[$(this).attr('name')] = $(this).val(); 
+                        mail = new Mail(options);
+                        mail.sendMessage();
+                    }); 
                 }
-            });
+            }
+        }
+      , row = {
+            row: null,
 
-            console.log(options);
-        
-            mail = new Mail(options);
-            mail.sendMessage();
+            load: function() {
+                return $('hr');
+            },
+
+            animate: function(fn) {
+                var syncRowWithSection = function() {
+                    this.row.addClass(ROW_ANIMATION);
+                    fn && fn.call(section, null);
+                }; 
+
+                this.row = this.load();
+
+                if(this.row.hasClass(INVISIBLE)) {
+                    this.row.removeClass(INVISIBLE);
+                    setTimeout(syncRowWithSection.bind(this), 0);
+
+                } else {
+                    this.row.removeClass(ROW_ANIMATION);
+                    setTimeout(syncRowWithSection.bind(this), 500);
+                }
+            }
+        }
+    ;    
+
+    // loading the first section
+    loader['index']();
+
+    /* helpers */
+
+    function ajax(url, callback) {
+        $.ajax({
+            url: url,
+            context: document.body
+        }).done(function(data) {
+            $(".inner-content").children().remove();
+            $(".spinner").addClass('invisible');
+            $(".inner-content").html(data).removeClass('zoomOut').addClass(FADE_IN);
+
+            callback && callback();
         });
-    };
+    }
+
+    function template(words) {
+        var template = "<div class='project'><h2><a href='{{url}}'>{{fullname}}</a></h2><p>{{description}}</p></div>"
+          , keys = Object.keys(words)
+          , length = keys.length
+          , html = []
+          , cloneTemplate = template
+          , key = null
+          , value = null
+          ;
+        
+        for(var j = 0; j < length; j++) {
+            key = new RegExp("{{" + keys[j] + "}}",'g');
+            value = words[keys[j]] == "" ? "No description available" : words[keys[j]];
+            cloneTemplate = cloneTemplate.replace(key, value);
+        }
+        html.push(cloneTemplate);
+    
+        return html.join("");
+    }
 
 	/**
 	* starts the initial animation once the user
